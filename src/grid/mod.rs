@@ -163,7 +163,9 @@ impl<T: Copy + Clone> Grid<T> {
     pub fn update_history(&mut self, history_size: usize, template: &T)
     {
         self.raw.update_history(history_size, Row::new(self.cols, &template));
+        self.max_scroll_limit = history_size;
         self.scroll_limit = min(self.scroll_limit, history_size);
+        self.display_offset = min(self.display_offset, self.scroll_limit);
     }
 
     pub fn scroll_display(&mut self, scroll: Scroll) {
@@ -401,6 +403,22 @@ impl<T: Copy + Clone> Grid<T> {
                 self.raw[line].reset(&template);
             }
         }
+    }
+
+    // Completely reset the grid state
+    pub fn reset(&mut self, template: &T) {
+        // Explicitly purge all lines from history
+        let shrinkage = self.raw.len() - self.lines.0;
+        self.raw.shrink_lines(shrinkage);
+        self.clear_history();
+
+        // Reset all visible lines
+        for row in 0..self.raw.len() {
+            self.raw[row].reset(template);
+        }
+
+        self.display_offset = 0;
+        self.selection = None;
     }
 }
 
