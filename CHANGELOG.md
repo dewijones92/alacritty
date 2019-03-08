@@ -6,10 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Command keybindings on Windows will no longer open new cmd.exe console windows
+
 ### Added
 
 - MSI installer for Windows is now available
 - New default key bindings Alt+Home, Alt+End, Alt+PageUp and Alt+PageDown
+- Dynamic title support on Windows
 
 ### Fixed
 
@@ -20,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resetting the terminal while in the alt screen will no longer disable scrollback
 - Cursor jumping around when leaving alt screen while not in the alt screen
 - Text lingering around when resetting while scrolled up in the history
+- Terminfo support for extended capabilities
+- Allow mouse presses and beginning of mouse selection in padding
+- Windows: Conpty backend could close immediately on startup in certain situations
 
 ## Version 0.2.9
 
