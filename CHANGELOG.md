@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dynamic title support on Windows
 - Ability to specify starting position with the `--position` flag
 - New configuration field `window.position` allows specifying the starting position
+- Added the ability to change the selection color
+- Text will reflow instead of truncating when resizing Alacritty
 
 ### Fixed
 
@@ -32,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows: Conpty backend could close immediately on startup in certain situations
 - FreeBSD: SpawnNewInstance will now open new instances in the shell's current
     working directory as long as linprocfs(5) is mounted on `/compat/linux/proc`
+- Fix lingering Alacritty window after child process has exited
+- Growing the terminal while scrolled up will no longer move the content down
 
 ## Version 0.2.9
 
