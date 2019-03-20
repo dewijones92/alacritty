@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New configuration field `window.position` allows specifying the starting position
 - Added the ability to change the selection color
 - Text will reflow instead of truncating when resizing Alacritty
+- Underline text and change cursor when hovering over URLs with required modifiers pressed
+
+### Changed
+
+- Clicking on non-alphabetical characters in front of URLs will no longer open them
 
 ### Fixed
 
@@ -41,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The AltGr key no longer sends escapes (like Alt)
 - Fixes increase/decrease font-size keybindings on international keyboards
 - On Wayland, the `--title` flag will set the Window title now
+- Parsing issues with URLs starting in the first or ending in the last column
 
 ## Version 0.2.9
 
