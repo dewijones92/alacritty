@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use unicode_width::UnicodeWidthChar;
 use url;
 
 use crate::term::cell::{Cell, Flags};
@@ -19,39 +20,30 @@ use crate::term::cell::{Cell, Flags};
 // See https://tools.ietf.org/html/rfc3987#page-13
 const URL_SEPARATOR_CHARS: [char; 10] = ['<', '>', '"', ' ', '{', '}', '|', '\\', '^', '`'];
 const URL_DENY_END_CHARS: [char; 8] = ['.', ',', ';', ':', '?', '!', '/', '('];
-const URL_SCHEMES: [&str; 8] = [
-    "http", "https", "mailto", "news", "file", "git", "ssh", "ftp",
-];
+const URL_SCHEMES: [&str; 8] = ["http", "https", "mailto", "news", "file", "git", "ssh", "ftp"];
 
 /// URL text and origin of the original click position.
 #[derive(Debug, PartialEq)]
 pub struct Url {
     pub text: String,
     pub origin: usize,
-    pub len: usize,
 }
 
 /// Parser for streaming inside-out detection of URLs.
 pub struct UrlParser {
     state: String,
     origin: usize,
-    len: usize,
 }
 
 impl UrlParser {
     pub fn new() -> Self {
-        UrlParser {
-            state: String::new(),
-            origin: 0,
-            len: 0,
-        }
+        UrlParser { state: String::new(), origin: 0 }
     }
 
     /// Advance the parser one character to the left.
     pub fn advance_left(&mut self, cell: &Cell) -> bool {
         if cell.flags.contains(Flags::WIDE_CHAR_SPACER) {
             self.origin += 1;
-            self.len += 1;
             return false;
         }
 
@@ -59,7 +51,6 @@ impl UrlParser {
             true
         } else {
             self.origin += 1;
-            self.len += 1;
             false
         }
     }
@@ -67,16 +58,10 @@ impl UrlParser {
     /// Advance the parser one character to the right.
     pub fn advance_right(&mut self, cell: &Cell) -> bool {
         if cell.flags.contains(Flags::WIDE_CHAR_SPACER) {
-            self.len += 1;
             return false;
         }
 
-        if self.advance(cell.c, self.state.len()) {
-            true
-        } else {
-            self.len += 1;
-            false
-        }
+        self.advance(cell.c, self.state.len())
     }
 
     /// Returns the URL if the parser has found any.
@@ -84,19 +69,17 @@ impl UrlParser {
         // Remove non-alphabetical characters before the scheme
         // https://tools.ietf.org/html/rfc3986#section-3.1
         if let Some(index) = self.state.find("://") {
-            let iter = self
-                .state
-                .char_indices()
-                .rev()
-                .skip_while(|(byte_index, _)| *byte_index >= index);
+            let iter =
+                self.state.char_indices().rev().skip_while(|(byte_index, _)| *byte_index >= index);
             for (byte_index, c) in iter {
                 match c {
                     'a'...'z' | 'A'...'Z' => (),
                     _ => {
-                        self.origin = self.origin.saturating_sub(byte_index + 1);
+                        self.origin =
+                            self.origin.saturating_sub(byte_index + c.width().unwrap_or(1));
                         self.state = self.state.split_off(byte_index + c.len_utf8());
                         break;
-                    }
+                    },
                 }
             }
         }
@@ -104,7 +87,7 @@ impl UrlParser {
         // Remove non-matching parenthesis and brackets
         let mut open_parens_count: isize = 0;
         let mut open_bracks_count: isize = 0;
-        for (i, c) in self.state.chars().enumerate() {
+        for (i, c) in self.state.char_indices() {
             match c {
                 '(' => open_parens_count += 1,
                 ')' if open_parens_count > 0 => open_parens_count -= 1,
@@ -113,7 +96,7 @@ impl UrlParser {
                 ')' | ']' => {
                     self.state.truncate(i);
                     break;
-                }
+                },
                 _ => (),
             }
         }
@@ -137,15 +120,11 @@ impl UrlParser {
         match url::Url::parse(&self.state) {
             Ok(url) => {
                 if URL_SCHEMES.contains(&url.scheme()) && self.origin > 0 {
-                    Some(Url {
-                        origin: self.origin - 1,
-                        text: self.state,
-                        len: self.len,
-                    })
+                    Some(Url { origin: self.origin - 1, text: self.state })
                 } else {
                     None
                 }
-            }
+            },
             Err(_) => None,
         }
     }
@@ -171,9 +150,9 @@ mod tests {
 
     use crate::grid::Grid;
     use crate::index::{Column, Line, Point};
-    use crate::term::{Search, SizeInfo, Term};
-    use crate::term::cell::{Cell, Flags};
     use crate::message_bar::MessageBuffer;
+    use crate::term::cell::{Cell, Flags};
+    use crate::term::{Search, SizeInfo, Term};
 
     fn url_create_term(input: &str) -> Term {
         let size = SizeInfo {
@@ -247,25 +226,14 @@ mod tests {
         let term = url_create_term("https://全.org");
         let url = term.url_search(Point::new(0, Column(9)));
         assert_eq!(url.map(|u| u.origin), Some(9));
-    }
 
-    #[test]
-    fn url_len() {
-        let term = url_create_term(" test https://example.org ");
-        let url = term.url_search(Point::new(0, Column(10)));
-        assert_eq!(url.map(|u| u.len), Some(19));
-
-        let term = url_create_term("https://全.org");
-        let url = term.url_search(Point::new(0, Column(0)));
-        assert_eq!(url.map(|u| u.len), Some(14));
-
-        let term = url_create_term("https://全.org");
-        let url = term.url_search(Point::new(0, Column(10)));
-        assert_eq!(url.map(|u| u.len), Some(14));
-
-        let term = url_create_term("https://全.org");
+        let term = url_create_term("test@https://example.org");
         let url = term.url_search(Point::new(0, Column(9)));
-        assert_eq!(url.map(|u| u.len), Some(14));
+        assert_eq!(url.map(|u| u.origin), Some(4));
+
+        let term = url_create_term("test全https://example.org");
+        let url = term.url_search(Point::new(0, Column(9)));
+        assert_eq!(url.map(|u| u.origin), Some(3));
     }
 
     #[test]
@@ -288,6 +256,8 @@ mod tests {
         url_test("'https://example.org'", "https://example.org");
         url_test("'https://example.org", "https://example.org");
         url_test("https://example.org'", "https://example.org");
+
+        url_test("(https://example.org/test全)", "https://example.org/test全");
     }
 
     #[test]

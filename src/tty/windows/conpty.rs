@@ -24,7 +24,6 @@ use dunce::canonicalize;
 use mio_anonymous_pipes::{EventedAnonRead, EventedAnonWrite};
 use miow;
 use widestring::U16CString;
-use winapi::ctypes::c_void;
 use winapi::shared::basetsd::{PSIZE_T, SIZE_T};
 use winapi::shared::minwindef::{BYTE, DWORD};
 use winapi::shared::ntdef::{HANDLE, HRESULT, LPWSTR};
@@ -35,16 +34,12 @@ use winapi::um::processthreadsapi::{
     PROCESS_INFORMATION, STARTUPINFOW,
 };
 use winapi::um::winbase::{EXTENDED_STARTUPINFO_PRESENT, STARTF_USESTDHANDLES, STARTUPINFOEXW};
-use winapi::um::wincon::COORD;
+use winapi::um::wincontypes::{COORD, HPCON};
 
 use crate::cli::Options;
 use crate::config::{Config, Shell};
 use crate::display::OnResize;
 use crate::term::SizeInfo;
-
-// This will be merged into winapi as PR #699
-// TODO: Use the winapi definition directly after that.
-pub type HPCON = *mut c_void;
 
 /// Dynamically-loaded Pseudoconsole API from kernel32.dll
 ///
@@ -214,10 +209,7 @@ pub fn new<'a>(
     cmdline.insert(0, initial_command.program().into());
 
     // Warning, here be borrow hell
-    let cwd = options
-        .working_dir
-        .as_ref()
-        .map(|dir| canonicalize(dir).unwrap());
+    let cwd = options.working_dir.as_ref().map(|dir| canonicalize(dir).unwrap());
     let cwd = cwd.as_ref().map(|dir| dir.to_str().unwrap());
 
     // Create the client application, using startup info containing ConPTY info
@@ -250,10 +242,7 @@ pub fn new<'a>(
     let conin = EventedAnonWrite::new(conin);
     let conout = EventedAnonRead::new(conout);
 
-    let agent = Conpty {
-        handle: pty_handle,
-        api,
-    };
+    let agent = Conpty { handle: pty_handle, api };
 
     Some(Pty {
         handle: super::PtyHandle::Conpty(ConptyHandle::new(agent)),
@@ -279,10 +268,7 @@ fn coord_from_sizeinfo(sizeinfo: &SizeInfo) -> Option<COORD> {
     let lines = sizeinfo.lines().0;
 
     if cols <= i16::MAX as usize && lines <= i16::MAX as usize {
-        Some(COORD {
-            X: sizeinfo.cols().0 as i16,
-            Y: sizeinfo.lines().0 as i16,
-        })
+        Some(COORD { X: sizeinfo.cols().0 as i16, Y: sizeinfo.lines().0 as i16 })
     } else {
         None
     }

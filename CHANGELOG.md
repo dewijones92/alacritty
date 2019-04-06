@@ -6,9 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+### Packaging
 
-- Command keybindings on Windows will no longer open new cmd.exe console windows
+- On Linux, the .desktop file now uses `Alacritty` as icon name, which can be
+    found at `extra/logo/alacritty-term.svg`
 
 ### Added
 
@@ -24,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Clicking on non-alphabetical characters in front of URLs will no longer open them
+- Command keybindings on Windows will no longer open new cmd.exe console windows
+- On macOS, automatic graphics switching has been temporarily disabled due to a macos bug
 
 ### Fixed
 
@@ -49,6 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parsing issues with URLs starting in the first or ending in the last column
 - URLs stopping at double-width characters
 - Fix `start_maximized` option on X11
+- Error when parsing URLs ending with Unicode outside of the ascii range
+- On Windows, focusing a Window will no longer start a selection
 
 ## Version 0.2.9
 

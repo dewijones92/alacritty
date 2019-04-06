@@ -17,20 +17,18 @@
 /// Indexing types and implementations for Grid and Line
 use std::cmp::{Ord, Ordering};
 use std::fmt;
-use std::ops::{self, Deref, Range, RangeInclusive, Add, Sub, AddAssign, SubAssign};
-
-use crate::grid::BidirectionalIterator;
+use std::ops::{self, Add, AddAssign, Deref, Range, RangeInclusive, Sub, SubAssign};
 
 /// The side of a cell
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum Side {
     Left,
-    Right
+    Right,
 }
 
 /// Index in the grid using row, column notation
 #[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Serialize, Deserialize, PartialOrd)]
-pub struct Point<L=Line> {
+pub struct Point<L = Line> {
     pub line: L,
     pub col: Column,
 }
@@ -45,11 +43,10 @@ impl Ord for Point {
     fn cmp(&self, other: &Point) -> Ordering {
         use std::cmp::Ordering::*;
         match (self.line.cmp(&other.line), self.col.cmp(&other.col)) {
-            (Equal,   Equal) => Equal,
-            (Equal,   ord) |
-            (ord,     Equal) => ord,
-            (Less,    _)     => Less,
-            (Greater, _)     => Greater,
+            (Equal, Equal) => Equal,
+            (Equal, ord) | (ord, Equal) => ord,
+            (Less, _) => Less,
+            (Greater, _) => Greater,
         }
     }
 }
@@ -69,67 +66,6 @@ impl From<Point<isize>> for Point<usize> {
 impl From<Point> for Point<usize> {
     fn from(point: Point) -> Self {
         Point::new(point.line.0, point.col)
-    }
-}
-
-impl<T> Point<T>
-where
-    T: Copy + Default + SubAssign<usize> + PartialEq,
-{
-    pub fn iter(&self, last_col: Column, last_line: T) -> PointIterator<T> {
-        PointIterator {
-            cur: *self,
-            last_col,
-            last_line,
-        }
-    }
-}
-
-pub struct PointIterator<T> {
-    pub cur: Point<T>,
-    last_col: Column,
-    last_line: T,
-}
-
-impl<T> Iterator for PointIterator<T>
-where
-    T: Copy + Default + SubAssign<usize> + PartialEq,
-{
-    type Item = Point<T>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.cur {
-            Point { line, col } if line == Default::default() && col == self.last_col => None,
-            Point { col, .. } if col == self.last_col => {
-                self.cur.line -= 1;
-                self.cur.col = Column(0);
-                Some(self.cur)
-            },
-            _ => {
-                self.cur.col += Column(1);
-                Some(self.cur)
-            }
-        }
-    }
-}
-
-impl<T> BidirectionalIterator for PointIterator<T>
-where
-    T: Copy + Default + AddAssign<usize> + SubAssign<usize> + PartialEq,
-{
-    fn prev(&mut self) -> Option<Self::Item> {
-        match self.cur {
-            Point { line, col: Column(0) } if line == self.last_line => None,
-            Point { col: Column(0), .. } => {
-                self.cur.line += 1;
-                self.cur.col = self.last_col;
-                Some(self.cur)
-            },
-            _ => {
-                self.cur.col -= Column(1);
-                Some(self.cur)
-            }
-        }
     }
 }
 
@@ -162,6 +98,16 @@ impl fmt::Display for Column {
 /// Newtype to avoid passing values incorrectly
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Default, Ord, PartialOrd, Serialize, Deserialize)]
 pub struct Linear(pub usize);
+
+impl Linear {
+    pub fn new(columns: Column, column: Column, line: Line) -> Self {
+        Linear(line.0 * columns.0 + column.0)
+    }
+
+    pub fn from_point(columns: Column, point: Point<usize>) -> Self {
+        Linear(point.line * columns.0 + point.col.0)
+    }
+}
 
 impl fmt::Display for Linear {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -209,7 +155,7 @@ macro_rules! forward_ref_binop {
                 $imp::$method(*self, *other)
             }
         }
-    }
+    };
 }
 
 /// Macro for deriving deref
@@ -223,7 +169,7 @@ macro_rules! deref {
                 &self.0
             }
         }
-    }
+    };
 }
 
 macro_rules! add {
@@ -236,7 +182,7 @@ macro_rules! add {
                 $construct(self.0 + rhs.0)
             }
         }
-    }
+    };
 }
 
 macro_rules! sub {
@@ -276,7 +222,7 @@ macro_rules! sub {
                 $construct(self.0 - rhs.0)
             }
         }
-    }
+    };
 }
 
 /// This exists because we can't implement Iterator on Range
@@ -299,6 +245,7 @@ pub trait Contains {
 
 impl<T: PartialOrd<T>> Contains for Range<T> {
     type Content = T;
+
     fn contains_(&self, item: Self::Content) -> bool {
         (self.start <= item) && (item < self.end)
     }
@@ -306,6 +253,7 @@ impl<T: PartialOrd<T>> Contains for Range<T> {
 
 impl<T: PartialOrd<T>> Contains for RangeInclusive<T> {
     type Content = T;
+
     fn contains_(&self, item: Self::Content) -> bool {
         (self.start() <= &item) && (&item <= self.end())
     }
@@ -436,7 +384,7 @@ ops!(Linear, Linear);
 
 #[cfg(test)]
 mod tests {
-    use super::{Line, Column, Point};
+    use super::{Column, Line, Point};
 
     #[test]
     fn location_ordering() {

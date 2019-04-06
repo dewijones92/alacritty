@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{cmp, io};
 use std::ffi::OsStr;
 use std::process::Command;
-use std::process::Stdio;
+use std::{cmp, io};
 
 #[cfg(not(windows))]
 use std::os::unix::process::CommandExt;
 
 #[cfg(windows)]
 use std::os::windows::process::CommandExt;
+#[cfg(windows)]
+use std::process::Stdio;
 #[cfg(windows)]
 use winapi::um::winbase::{CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW};
 
@@ -35,10 +36,7 @@ pub mod thread {
         T: Send + 'static,
         S: Into<String>,
     {
-        ::std::thread::Builder::new()
-            .name(name.into())
-            .spawn(f)
-            .expect("thread spawn works")
+        ::std::thread::Builder::new().name(name.into()).spawn(f).expect("thread spawn works")
     }
 
     pub use std::thread::*;
@@ -87,19 +85,15 @@ pub mod fmt {
 
 #[cfg(not(windows))]
 pub fn start_daemon<I, S>(program: &str, args: I) -> io::Result<()>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
 {
     Command::new(program)
         .args(args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
         .before_exec(|| unsafe {
-            if ::libc::fork() != 0 {
-                std::process::exit(0);
-            }
+            #[allow(deprecated)]
+            libc::daemon(1, 0);
             Ok(())
         })
         .spawn()?
@@ -109,9 +103,9 @@ pub fn start_daemon<I, S>(program: &str, args: I) -> io::Result<()>
 
 #[cfg(windows)]
 pub fn start_daemon<I, S>(program: &str, args: I) -> io::Result<()>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<OsStr>,
 {
     // Setting all the I/O handles to null and setting the
     // CREATE_NEW_PROCESS_GROUP and CREATE_NO_WINDOW has the effect
