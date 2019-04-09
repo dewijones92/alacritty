@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added ScrollLineUp and ScrollLineDown actions for scrolling line by line
+
+### Fixed
+
+- Reset scrolling region when the RIS escape sequence is received
+
+## Version 0.3.0
+
 ### Packaging
 
 - On Linux, the .desktop file now uses `Alacritty` as icon name, which can be
