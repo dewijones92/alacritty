@@ -33,11 +33,20 @@ Precompiled binaries are available from the [GitHub releases page](https://githu
 - [Announcing Alacritty, a GPU-Accelerated Terminal Emulator](https://jwilm.io/blog/announcing-alacritty/) January 6, 2017
 - [A short talk about Alacritty at the Rust Meetup January 2017](https://air.mozilla.org/rust-meetup-january-2017/) (starts at 57:00)
 - [Alacritty Lands Scrollback, Publishes Benchmarks](https://jwilm.io/blog/alacritty-lands-scrollback/) September 17, 2018
+- [Version 0.3.0 Release Announcement](https://blog.christianduerr.com/alacritty_030_announcement) April 07, 2019
 
 ## Installation
 
 Some operating systems already provide binaries for Alacritty, for everyone
 else the instructions to build Alacritty from source can be found [here](INSTALL.md).
+
+### Pop!\_OS
+
+Provided in the [Pop!\_OS repositories](https://launchpad.net/~system76/+archive/ubuntu/pop) for 18.04 (bionic) and higher.
+
+```sh
+apt install alacritty
+```
 
 ### Arch Linux
 
@@ -121,6 +130,9 @@ API. The agent is a single binary (`winpty-agent.exe`) which **must** be in
 the same directory as the Alacritty executable and is available through the
 [GitHub releases page](https://github.com/jwilm/alacritty/releases).
 
+On Windows, Alacritty also requires Microsoft's VC++ redistributable to work
+properly.
+
 ## Configuration
 
 Although it's possible the default configuration would work on your system,
@@ -147,6 +159,11 @@ the default config file.
 On Windows the config file is located at:
 
 `%APPDATA%\alacritty\alacritty.yml`
+
+## Contributing
+
+A full guideline about contributing to Alacritty can be found in the
+[`CONTRIBUTING.md`](CONTRIBUTING.md) file.
 
 ## Issues (known, unknown, feature requests, etc.)
 
