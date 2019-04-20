@@ -338,6 +338,9 @@ impl Display {
         pty_resize_handle: &mut dyn OnResize,
         processor_resize_handle: &mut dyn OnResize,
     ) {
+        let previous_cols = self.size_info.cols();
+        let previous_lines = self.size_info.lines();
+
         // Resize events new_size and are handled outside the poll_events
         // iterator. This has the effect of coalescing multiple resize
         // events into one.
@@ -412,7 +415,10 @@ impl Display {
             if let Some(message) = terminal.message_buffer_mut().message() {
                 pty_size.height -= pty_size.cell_height * message.text(&size).len() as f32;
             }
-            pty_resize_handle.on_resize(&pty_size);
+
+            if previous_cols != size.cols() || previous_lines != size.lines() {
+                pty_resize_handle.on_resize(&pty_size);
+            }
 
             self.window.resize(psize);
             self.renderer.resize(psize, self.size_info.padding_x, self.size_info.padding_y);
@@ -429,10 +435,11 @@ impl Display {
         let size_info = *terminal.size_info();
         let visual_bell_intensity = terminal.visual_bell.intensity();
         let background_color = terminal.background_color();
+        let metrics = self.glyph_cache.font_metrics();
 
         let window_focused = self.window.is_focused;
         let grid_cells: Vec<RenderableCell> =
-            terminal.renderable_cells(config, window_focused).collect();
+            terminal.renderable_cells(config, window_focused, metrics).collect();
 
         // Get message from terminal to ignore modifications after lock is dropped
         let message_buffer = terminal.message_buffer_mut().message();
@@ -473,7 +480,6 @@ impl Display {
 
         {
             let glyph_cache = &mut self.glyph_cache;
-            let metrics = glyph_cache.font_metrics();
             let mut rects = Rects::new(&metrics, &size_info);
 
             // Draw grid
@@ -484,7 +490,7 @@ impl Display {
                     // Iterate over all non-empty cells in the grid
                     for cell in grid_cells {
                         // Update underline/strikeout
-                        rects.update_lines(&cell);
+                        rects.update_lines(&size_info, &cell);
 
                         // Draw the cell
                         api.render_cell(cell, glyph_cache);

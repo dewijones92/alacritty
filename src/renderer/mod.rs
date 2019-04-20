@@ -32,7 +32,7 @@ use crate::gl::types::*;
 use crate::index::{Column, Line};
 use crate::renderer::rects::{Rect, Rects};
 use crate::term::color::Rgb;
-use crate::term::{self, cell, RenderableCell};
+use crate::term::{self, cell, RenderableCell, RenderableCellContent};
 
 pub mod rects;
 
@@ -950,11 +950,11 @@ impl<'a> RenderApi<'a> {
             .map(|(i, c)| RenderableCell {
                 line,
                 column: col + i,
-                chars: {
+                inner: RenderableCellContent::Chars({
                     let mut chars = [' '; cell::MAX_ZEROWIDTH_CHARS + 1];
                     chars[0] = c;
                     chars
-                },
+                }),
                 bg: color.unwrap_or(Rgb { r: 0, g: 0, b: 0 }),
                 fg: Rgb { r: 0, g: 0, b: 0 },
                 flags: cell::Flags::empty(),
@@ -983,6 +983,16 @@ impl<'a> RenderApi<'a> {
     }
 
     pub fn render_cell(&mut self, cell: RenderableCell, glyph_cache: &mut GlyphCache) {
+        let chars = match cell.inner {
+            RenderableCellContent::Raw(ref raw) => {
+                // Raw cell pixel buffers like cursors don't need to go through font lookup
+                let glyph = self.load_glyph(raw);
+                self.add_render_item(&cell, &glyph);
+                return;
+            },
+            RenderableCellContent::Chars(chars) => chars,
+        };
+
         // Get font key for cell
         // FIXME this is super inefficient.
         let font_key = if cell.flags.contains(cell::Flags::BOLD) {
@@ -997,7 +1007,7 @@ impl<'a> RenderApi<'a> {
         let mut chars = if cell.flags.contains(cell::Flags::HIDDEN) {
             [' '; cell::MAX_ZEROWIDTH_CHARS + 1]
         } else {
-            cell.chars
+            chars
         };
 
         // Render tabs as spaces in case the font doesn't support it
