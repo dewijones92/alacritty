@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config group `debug` with the options `debug.log_level`, `debug.print_events`
     and `debug.ref_test`
 - Select until next matching bracket when double-clicking a bracket
+- Added foreground/background escape code request sequences
 
 ### Changed
 
@@ -46,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - On macOS, automatic graphics switching has been enabled again
 - Text getting recognized as URLs without slashes separating the scheme
 - URL parser dropping trailing slashes from valid URLs
+- UTF-8 BOM skipped when reading config file
 
 ### Removed
 
