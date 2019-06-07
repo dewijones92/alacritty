@@ -20,7 +20,7 @@
         14. [Clear Linux](#clear-linux)
         15. [Other](#other)
 2. [Building](#building)
-    1. [Linux](#linux)
+    1. [Linux/Windows](#linux--windows)
         1. [Desktop Entry](#desktop-entry)
     2. [MacOS](#macos)
     3. [Cargo](#cargo)
@@ -65,7 +65,7 @@ drivers installed too (these are called `libegl1-mesa-dev` on Ubuntu).
 #### Debian/Ubuntu
 
 You can build alacritty using `cargo deb` and use your system's package manager
-to maintain the application using the instructions [above](#debianubuntu).
+to maintain the application using the instructions [below](#debianubuntu-1).
 
 If you'd still like to build a local version manually, you need a few extra
 libraries to build Alacritty. Here's an apt command that should install all of
@@ -156,7 +156,7 @@ Alacritty. Here's a `eopkg` command that should install all of them. If
 something is still found to be missing, please open an issue.
 
 ```sh
-sudo eopkg install fontconfig-devel
+eopkg install fontconfig-devel
 ```
 
 #### NixOS/Nixpkgs
@@ -166,6 +166,16 @@ dependencies on [NixOS](https://nixos.org).
 
 ```sh
 nix-shell -A alacritty '<nixpkgs>'
+```
+
+#### Gentoo
+
+On Gentoo, you need a few extra libraries to build Alacritty. The following
+command should install all of them. If something is still found to be missing,
+please open an issue.
+
+```sh
+emerge --onlydeps x11-terms/alacritty
 ```
 
 #### Windows
