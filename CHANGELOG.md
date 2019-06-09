@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The xclip dependency has been removed
 - On macOS, Alacritty now requests NSSystemAdministrationUsageDescription to
    avoid permission failures
+- Minimum Rust version has been bumped to 1.32.0
 
 ### Added
 
@@ -49,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Text getting recognized as URLs without slashes separating the scheme
 - URL parser dropping trailing slashes from valid URLs
 - UTF-8 BOM skipped when reading config file
+- Terminfo backspace escape sequence (`kbs`)
 
 ### Removed
 
