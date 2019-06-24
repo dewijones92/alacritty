@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Block selection mode when Control is held while starting a selection
+
+### Fixed
+
+- GUI programs launched by Alacritty starting in the background on X11
+- Text Cursor position when scrolling
+- Performance issues while resizing Alacritty
+
+## 0.3.3
+
 ### Packaging
 
 - Add appstream metadata, located at /extra/linux/io.alacritty.Alacritty.xml
@@ -392,6 +404,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pressing enter on the numpad should now insert a newline
 - The mouse bindings now support keyboard modifiers (shift/ctrl/alt/super)
 - Add support for the bright foreground color
+- Support for setting foreground, background colors in one escape sequence
 
 ### Changed
 

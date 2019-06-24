@@ -72,7 +72,7 @@ libraries to build Alacritty. Here's an apt command that should install all of
 them. If something is still found to be missing, please open an issue.
 
 ```sh
-apt-get install cmake pkg-config libfreetype6-dev libfontconfig1-dev libxcb-xfixes0-dev
+apt-get install cmake pkg-config libfreetype6-dev libfontconfig1-dev libxcb-xfixes0-dev python3
 ```
 
 #### Arch Linux
@@ -126,7 +126,7 @@ On [Void Linux](https://voidlinux.eu), install following packages before
 compiling Alacritty:
 
 ```sh
-xbps-install cmake freetype-devel freetype expat-devel fontconfig-devel fontconfig
+xbps-install cmake freetype-devel expat-devel fontconfig-devel libxcb-devel pkg-config python3
 ```
 
 #### FreeBSD
@@ -141,13 +141,18 @@ pkg install cmake freetype2 fontconfig pkgconf
 
 #### OpenBSD
 
-Alacritty builds on OpenBSD 6.3 almost out-of-the-box if Rust and
-[Xenocara](https://xenocara.org) are installed.  If something is still found to
-be missing, please open an issue.
+On OpenBSD 6.5, you need [Xenocara](https://xenocara.org) and Rust to build
+Alacritty, plus Python 3 to build its XCB dependency. If something is still
+found to be missing, please open an issue.
 
 ```sh
-pkg_add rust
+pkg_add rust python
 ```
+
+Select the package for Python 3 (e.g. `python-3.6.8p0`) when prompted.
+
+The default user limits in OpenBSD are insufficient to build Alacritty. A
+`datasize-cur` of at least 3GB is recommended (see [login.conf](https://man.openbsd.org/login.conf)).
 
 #### Solus
 
