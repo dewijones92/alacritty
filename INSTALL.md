@@ -82,7 +82,7 @@ On Arch Linux, you need a few extra libraries to build Alacritty. Here's a
 to be missing, please open an issue.
 
 ```sh
-pacman -S cmake freetype2 fontconfig pkg-config make
+pacman -S cmake freetype2 fontconfig pkg-config make libxcb
 ```
 
 #### Fedora
@@ -316,10 +316,9 @@ echo "source ~/.bash_completion/alacritty" >> ~/.bashrc
 To install the completions for fish, run
 
 ```
-sudo cp extra/completions/alacritty.fish $__fish_data_dir/vendor_completions.d/alacritty.fish
+mkdir -p $fish_complete_path[1]
+cp extra/completions/alacritty.fish $fish_complete_path[1]/alacritty.fish
 ```
-
-**Note:** For fish versions below 3.0 `$__fish_datadir` must be used instead.
 
 ## Terminfo
 

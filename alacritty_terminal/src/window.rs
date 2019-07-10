@@ -17,7 +17,7 @@ use std::ffi::c_void;
 use std::fmt::Display;
 
 use crate::gl;
-use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize};
+use glutin::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 #[cfg(target_os = "macos")]
 use glutin::os::macos::WindowExt;
 #[cfg(not(any(target_os = "macos", windows)))]
@@ -60,6 +60,9 @@ pub struct Window {
     event_loop: EventsLoop,
     windowed_context: glutin::WindowedContext<PossiblyCurrent>,
     mouse_visible: bool,
+
+    /// Keep track of the current mouse cursor to avoid unnecessarily changing it
+    current_mouse_cursor: MouseCursor,
 
     /// Whether or not the window is the focused window.
     pub is_focused: bool,
@@ -151,45 +154,12 @@ impl Window {
         dimensions: Option<LogicalSize>,
     ) -> Result<Window> {
         let title = config.window.title.as_ref().map_or(DEFAULT_NAME, |t| t);
-        let class = config.window.class.as_ref().map_or(DEFAULT_NAME, |c| c);
 
-        let window_builder = Window::get_platform_window(title, class, &config.window);
+        let window_builder = Window::get_platform_window(title, &config.window);
         let windowed_context =
             create_gl_window(window_builder.clone(), &event_loop, false, dimensions)
                 .or_else(|_| create_gl_window(window_builder, &event_loop, true, dimensions))?;
         let window = windowed_context.window();
-        window.show();
-
-        // Maximize window after mapping in X11
-        #[cfg(not(any(target_os = "macos", windows)))]
-        {
-            if event_loop.is_x11() && config.window.startup_mode() == StartupMode::Maximized {
-                window.set_maximized(true);
-            }
-        }
-
-        // Set window position
-        //
-        // TODO: replace `set_position` with `with_position` once available
-        // Upstream issue: https://github.com/tomaka/winit/issues/806
-        if let Some(position) = config.window.position {
-            let physical = PhysicalPosition::from((position.x, position.y));
-            let logical = physical.to_logical(window.get_hidpi_factor());
-            window.set_position(logical);
-        }
-
-        if let StartupMode::Fullscreen = config.window.startup_mode() {
-            let current_monitor = window.get_current_monitor();
-            window.set_fullscreen(Some(current_monitor));
-        }
-
-        #[cfg(target_os = "macos")]
-        {
-            if let StartupMode::SimpleFullscreen = config.window.startup_mode() {
-                use glutin::os::macos::WindowExt;
-                window.set_simple_fullscreen(true);
-            }
-        }
 
         // Text cursor
         window.set_cursor(MouseCursor::Text);
@@ -197,8 +167,13 @@ impl Window {
         // Set OpenGL symbol loader. This call MUST be after window.make_current on windows.
         gl::load_with(|symbol| windowed_context.get_proc_address(symbol) as *const _);
 
-        let window =
-            Window { event_loop, windowed_context, mouse_visible: true, is_focused: false };
+        let window = Window {
+            event_loop,
+            current_mouse_cursor: MouseCursor::Default,
+            windowed_context,
+            mouse_visible: true,
+            is_focused: false,
+        };
 
         window.run_os_extensions();
 
@@ -250,6 +225,12 @@ impl Window {
         self.windowed_context.resize(size);
     }
 
+    /// Show window
+    #[inline]
+    pub fn show(&self) {
+        self.window().show();
+    }
+
     /// Block waiting for events
     #[inline]
     pub fn wait_events<F>(&mut self, func: F)
@@ -266,8 +247,11 @@ impl Window {
     }
 
     #[inline]
-    pub fn set_mouse_cursor(&self, cursor: MouseCursor) {
-        self.window().set_cursor(cursor);
+    pub fn set_mouse_cursor(&mut self, cursor: MouseCursor) {
+        if cursor != self.current_mouse_cursor {
+            self.current_mouse_cursor = cursor;
+            self.window().set_cursor(cursor);
+        }
     }
 
     /// Set mouse cursor visible
@@ -279,11 +263,7 @@ impl Window {
     }
 
     #[cfg(not(any(target_os = "macos", windows)))]
-    pub fn get_platform_window(
-        title: &str,
-        class: &str,
-        window_config: &WindowConfig,
-    ) -> WindowBuilder {
+    pub fn get_platform_window(title: &str, window_config: &WindowConfig) -> WindowBuilder {
         use glutin::os::unix::WindowBuilderExt;
 
         let decorations = match window_config.decorations {
@@ -293,7 +273,9 @@ impl Window {
 
         let icon = Icon::from_bytes_with_format(WINDOW_ICON, ImageFormat::ICO);
 
-        WindowBuilder::new()
+        let class = &window_config.class;
+
+        let mut builder = WindowBuilder::new()
             .with_title(title)
             .with_visibility(false)
             .with_transparency(true)
@@ -301,17 +283,19 @@ impl Window {
             .with_maximized(window_config.startup_mode() == StartupMode::Maximized)
             .with_window_icon(icon.ok())
             // X11
-            .with_class(class.into(), DEFAULT_NAME.into())
+            .with_class(class.instance.clone(), class.general.clone())
             // Wayland
-            .with_app_id(class.into())
+            .with_app_id(class.instance.clone());
+
+        if let Some(ref val) = window_config.gtk_theme_variant {
+            builder = builder.with_gtk_theme_variant(val.clone())
+        }
+
+        builder
     }
 
     #[cfg(windows)]
-    pub fn get_platform_window(
-        title: &str,
-        _class: &str,
-        window_config: &WindowConfig,
-    ) -> WindowBuilder {
+    pub fn get_platform_window(title: &str, window_config: &WindowConfig) -> WindowBuilder {
         let decorations = match window_config.decorations {
             Decorations::None => false,
             _ => true,
@@ -329,11 +313,7 @@ impl Window {
     }
 
     #[cfg(target_os = "macos")]
-    pub fn get_platform_window(
-        title: &str,
-        _class: &str,
-        window_config: &WindowConfig,
-    ) -> WindowBuilder {
+    pub fn get_platform_window(title: &str, window_config: &WindowConfig) -> WindowBuilder {
         use glutin::os::macos::WindowBuilderExt;
 
         let window = WindowBuilder::new()
@@ -379,12 +359,21 @@ impl Window {
         self.window().set_ime_spot(pos);
     }
 
+    pub fn set_position(&self, pos: LogicalPosition) {
+        self.window().set_position(pos);
+    }
+
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     pub fn get_window_id(&self) -> Option<usize> {
         match self.window().get_xlib_window() {
             Some(xlib_window) => Some(xlib_window as usize),
             None => None,
         }
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    pub fn is_x11(&self) -> bool {
+        self.event_loop.is_x11()
     }
 
     #[cfg(any(target_os = "macos", target_os = "windows"))]
@@ -406,6 +395,10 @@ impl Window {
         } else {
             glutin_window.set_fullscreen(None);
         }
+    }
+
+    pub fn set_maximized(&self, maximized: bool) {
+        self.window().set_maximized(maximized);
     }
 
     #[cfg(target_os = "macos")]
